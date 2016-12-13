@@ -1,3 +1,6 @@
+import groovy.json.JsonSlurper;
+import groovy.json.JsonParserType;
+
 def getPriceOfAll = {endpoint, productTypes ->
     parsePagedJsonFrom(endpoint)
     .findAll{ it.product_type in productTypes }*.variants*.price
@@ -17,7 +20,7 @@ catch(Exception e) {
 }
 
 def parsePagedJsonFrom(String endpoint) { 
-    def parsePage = makeJsonPageParserFor(endpoint)
+    def parsePage = makeJsonPageParserFor endpoint
     parsePagedJson(parsePage, 1)
 }
 
@@ -29,8 +32,7 @@ def parsePagedJson(Closure parsePage, int pageNum) {
         products + parsePagedJson(parsePage, pageNum + 1)
 }
 
-/* Returns a closure with one parameter: the page to parse 
- * There is a better overload for parsing from URLs but it seems to be buggy at the time of writing */
 def makeJsonPageParserFor(String baseUrl) {
-    { pageNum -> new groovy.json.JsonSlurper().parseText new URL("$baseUrl?page=$pageNum").text }
+    def slurper = new JsonSlurper().setType(JsonParserType.INDEX_OVERLAY)
+    return { pageNum -> slurper.parse( "$baseUrl?page=$pageNum".toURL() ) }
 }
